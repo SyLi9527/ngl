@@ -360,17 +360,30 @@ export class Interpolator {
 
   //
 
-  private interpolateSize (item1: AtomProxy, item2: AtomProxy, sizeFn: (item: AtomProxy) => number, size: Float32Array, offset: number) {
+  private interpolateSize (item1: AtomProxy, item2: AtomProxy, sizeFn: (item: AtomProxy) => number, size: Float32Array, type: Array<string>, offset: number) {
     const s1: number = sizeFn.apply(this, [item1])
     const s2: number = sizeFn.apply(this, [item2])
     for (let j = 0; j < this.m; ++j) {
       // linear interpolation
       let t = j / this.m
       size[ offset + j ] = (1 - t) * s1 + t * s2
+      type[ offset + j ] = this.getAtomType(item1);
     }
   }
 
-  public getSize (iterator: AtomIterator, sizeFn: (item: AtomProxy) => number, size: Float32Array, offset: number, isCyclic: boolean) {
+  public getAtomType(atom: AtomProxy) {
+    if (atom.isSheet()) {
+      return "sheet"
+    } else if (atom.isHelix()) {
+      return "helix"
+    } else if (atom.isTurn()) {
+      return "turn"
+    } else {
+      return "other"
+    }
+  }
+
+  public getSize (iterator: AtomIterator, sizeFn: (item: AtomProxy) => number, size: Float32Array, type: Array<string>, offset: number, isCyclic: boolean) {
     iterator.reset()
     iterator.next() // first element not needed
     let i0: AtomProxy
@@ -379,20 +392,23 @@ export class Interpolator {
     const n = iterator.size
     const n1 = n - 1
     let k = offset || 0
+    //type[k] = this.getAtomType(i1);
     for (var i = 0; i < n1; ++i) {
       i0 = i1
       i1 = <AtomProxy>iterator.next()
-      this.interpolateSize(i0, i1, sizeFn, size, k)
+      this.interpolateSize(i0, i1, sizeFn, size, type, k)
+      //type[k] = this.getAtomType(i1);
       k += this.m
     }
     if (isCyclic) {
       i0 = <AtomProxy>iterator.get(n - 1)
       i1 = <AtomProxy>iterator.get(0)
-      this.interpolateSize(i0, i1, sizeFn, size, k)
+      this.interpolateSize(i0, i1, sizeFn, size, type,k)
       k += this.m
     }
     //
     size[ k ] = size[ k - 1 ]
+    type[ k ] = type[ k - 1 ]
   }
 }
 
@@ -422,21 +438,21 @@ class Spline {
 
   constructor (polymer: Polymer, params?: SplineParameters) {
     this.polymer = polymer
-      this.size = polymer.residueCount
+    this.size = polymer.residueCount
 
-      var p = params || {}
-      this.directional = p.directional || false
-      this.positionIterator = p.positionIterator || false
-      this.subdiv = p.subdiv || 1
-      this.smoothSheet = p.smoothSheet || false
+    var p = params || {}
+    this.directional = p.directional || false
+    this.positionIterator = p.positionIterator || false
+    this.subdiv = p.subdiv || 1
+    this.smoothSheet = p.smoothSheet || false
 
-      if (!p.tension) {
-        this.tension = this.polymer.isNucleic() ? 0.5 : 0.9
-      } else {
-        this.tension = p.tension
-      }
+    if (!p.tension) {
+      this.tension = this.polymer.isNucleic() ? 0.5 : 0.9
+    } else {
+      this.tension = p.tension
+    }
 
-      this.interpolator = new Interpolator(this.subdiv, this.tension)
+    this.interpolator = new Interpolator(this.subdiv, this.tension)
   }
 
   getAtomIterator (type: string, smooth?: boolean): AtomIterator {
@@ -582,6 +598,7 @@ class Spline {
     if (polymer.isCyclic) nSize += m
 
     var size = new Float32Array(nSize)
+    var type = new Array<string>(nSize);
     var iterator = this.getAtomIterator('trace')
 
     var radiusFactory = new RadiusFactory(params)
@@ -591,11 +608,12 @@ class Spline {
     }
 
     this.interpolator.getSize(
-      iterator, sizeFn, size, 0, polymer.isCyclic
+      iterator, sizeFn, size, type, 0, polymer.isCyclic
     )
 
     return {
-      'size': size
+      'size': size,
+      'type': type
     }
   }
 

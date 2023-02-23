@@ -20,6 +20,7 @@ export interface TubeMeshBufferData extends BufferData {
   binormal: Float32Array
   tangent: Float32Array
   size: Float32Array
+  type: Array<string>
 }
 
 export const TubeMeshBufferDefaultParameters = Object.assign({
@@ -85,6 +86,10 @@ class TubeMeshBuffer extends MeshBuffer {
     this.size2 = data.position!.length / 3
     data.primitiveId = serialArray(this.size2)
 
+    console.log(data.position)
+    console.log(data.size)
+    console.log(data.type)
+
     this.setAttributes(data)
     this.makeIndex()
   }
@@ -98,7 +103,7 @@ class TubeMeshBuffer extends MeshBuffer {
 
     const attributes = this.geometry.attributes as any
 
-    let position, normal, binormal, tangent, color, size, primitiveId
+    let position, normal, binormal, tangent, color, size, type, primitiveId
     let meshPosition, meshColor, meshNormal, meshPrimitiveId
 
     if (data.position) {
@@ -107,6 +112,7 @@ class TubeMeshBuffer extends MeshBuffer {
       binormal = data.binormal
       tangent = data.tangent
       size = data.size
+      type = data.type
 
       meshPosition = attributes.position.array
       meshNormal = attributes.normal.array
@@ -139,6 +145,10 @@ class TubeMeshBuffer extends MeshBuffer {
     let posX = 0
     let posY = 0
     let posZ = 0
+    let nextPosX = 0
+    let nextPosY = 0
+    let nextPosZ = 0
+
 
     const cxArr = []
     const cyArr = []
@@ -181,6 +191,12 @@ class TubeMeshBuffer extends MeshBuffer {
         posX = position[ k ]
         posY = position[ k + 1 ]
         posZ = position[ k + 2 ]
+        
+        if (i < n - 1) {
+          nextPosX = position[ k + 3 ]
+          nextPosY = position[ k + 4 ]
+          nextPosZ = position[ k + 5 ]
+        }
 
         radius = size[ i ]
       }
@@ -189,17 +205,57 @@ class TubeMeshBuffer extends MeshBuffer {
         const s = l + j * 3
 
         if (position) {
-          const cx = -radius * cxArr[ j ] // TODO: Hack: Negating it so it faces outside.
-          const cy = radius * cyArr[ j ]
+          var cx, cx1, cx2;
+          if (type && type[i] === 'turn') {
+            cx = -radius * cxArr[ j ] / aspectRatio // TODO: Hack: Negating it so it faces outside.
+            cx1 = -radius * cx1Arr[ j ] / aspectRatio
+            cx2 = -radius * cx2Arr[ j ] / aspectRatio
+          } 
+          else {
+            cx = -radius * cxArr[ j ] // TODO: Hack: Negating it so it faces outside.
+            cx1 = -radius * cx1Arr[ j ]
+            cx2 = -radius * cx2Arr[ j ]
+          }
+          
+          var cy = radius * cyArr[ j ] 
+          var cy1 = radius * cy1Arr[ j ]
+          var cy2 = radius * cy2Arr[ j ]
 
-          const cx1 = -radius * cx1Arr[ j ]
-          const cy1 = radius * cy1Arr[ j ]
-          const cx2 = -radius * cx2Arr[ j ]
-          const cy2 = radius * cy2Arr[ j ]
+          // if  (type && type[i + 1] && type[i + 1] === 'turn') {
+          //   cy *= 5;
+          //   cy1 *= 5;
+          //   cy2 *- 5;
+          // }
+
+          if  (type && type[i + 1] && type[i] !== 'turn' && type[i + 1] === 'turn') {
+            cx *= 2;
+            cx1 *= 1;
+            cx2 *= 1;
+            cy *= 2;
+            cy1 *= 1;
+            cy2 *= 1;
+            // posX *= 1.1;
+            // posY *= 1.1;
+            // posZ *= 1.1;
+          }
 
           meshPosition[ s ] = posX + cx * normX + cy * biX
           meshPosition[ s + 1 ] = posY + cx * normY + cy * biY
           meshPosition[ s + 2 ] = posZ + cx * normZ + cy * biZ
+
+          if  (type && type[i + 1] && type[i] !== 'turn' && type[i + 1] === 'turn') {
+            meshPosition[ s ] = (meshPosition[ s ] - nextPosX) * 1.5 + nextPosX
+            meshPosition[ s + 1 ] = (meshPosition[ s + 1 ] - nextPosY) * 1.5 + nextPosY
+            meshPosition[ s + 2 ] = (meshPosition[ s + 2 ] - nextPosZ) * 1.5 + nextPosZ
+            // console.log(meshPosition[s]);
+            // console.log(meshPosition[ s + 1 ]);
+            // console.log(meshPosition[ s + 2 ]);
+            // console.log(j);
+            //meshPosition[ s + 2 ] = posZ + 4 * cx * normZ + cy * biZ
+            // meshPosition[ s ] *= 1.05;
+            // meshPosition[ s + 1 ] *= 1.05;
+            //meshPosition[ s + 2 ] *= 1.05;
+          }
 
                     // TODO half of these are symmetric
           vMeshNormal.set(
@@ -219,6 +275,16 @@ class TubeMeshBuffer extends MeshBuffer {
           meshColor[ s + 1 ] = color[ k + 1 ]
           meshColor[ s + 2 ] = color[ k + 2 ]
         }
+        // if  (type && type[i + 1] && type[i] !== 'turn' && type[i + 1] === 'turn' && j < radialSegments / 2) {
+        //   meshColor[ s ] = 0
+        //   meshColor[ s + 1 ] = 0
+        //   meshColor[ s + 2 ] = 0
+        // }
+        // if  (type && type[i + 1] && type[i] !== 'turn' && type[i + 1] === 'turn' && j > radialSegments / 2) {
+        //   meshColor[ s ] = 255
+        //   meshColor[ s + 1 ] = 0
+        //   meshColor[ s + 2 ] = 0
+        // }
 
         if (primitiveId) {
           meshPrimitiveId[ i * radialSegments + j ] = primitiveId[ i ]
@@ -246,9 +312,9 @@ class TubeMeshBuffer extends MeshBuffer {
       }
 
       if (color) {
-        meshColor[ t ] = meshColor[ s ]
-        meshColor[ t + 1 ] = meshColor[ s + 1 ]
-        meshColor[ t + 2 ] = meshColor[ s + 2 ]
+        meshColor[ t ] = 0
+        meshColor[ t + 1 ] = 255
+        meshColor[ t + 2 ] = 0
       }
 
       if (primitiveId) {
@@ -276,9 +342,9 @@ class TubeMeshBuffer extends MeshBuffer {
       }
 
       if (color) {
-        meshColor[ t ] = meshColor[ s ]
-        meshColor[ t + 1 ] = meshColor[ s + 1 ]
-        meshColor[ t + 2 ] = meshColor[ s + 2 ]
+        meshColor[ t ] = 0
+        meshColor[ t + 1 ] = 0
+        meshColor[ t + 2 ] = 255
       }
 
       if (primitiveId) {

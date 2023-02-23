@@ -121,6 +121,19 @@ class CartoonRepresentation extends StructureRepresentation {
     return new Spline(polymer, this.getSplineParams())
   }
 
+  getAtomType (atom: AtomProxy): string {
+    let type = 'other';
+    if (atom.isHelix()) {
+      type = 'helix'
+    } else if(atom.isSheet()) {
+      type = 'sheet'
+    } else if (atom.isTurn()) {
+      type = 'turn'
+    }
+
+    return type;
+  }
+
   getAspectRatio (polymer: Polymer): number {
     return polymer.isCg() ? 1.0 : this.aspectRatio
   }
@@ -136,7 +149,7 @@ class CartoonRepresentation extends StructureRepresentation {
     this.structure.eachPolymer(polymer => {
       if (polymer.residueCount < 4) return
       polymerList.push(polymer)
-
+      console.log(polymer.chainname);
       const spline = this.getSpline(polymer)
       const aspectRatio = this.getAspectRatio(polymer)
 
