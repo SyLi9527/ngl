@@ -12,7 +12,8 @@ import {
   BufferGeometry, BufferAttribute,
   UniformsUtils, UniformsLib, Uniform,
   Group, LineSegments, Points, Mesh, Object3D,
-  ShaderMaterial
+  ShaderMaterial,
+  Vector2
 } from 'three'
 
 import { Log } from '../globals'
@@ -153,7 +154,7 @@ class Buffer {
   wireframeIndexCount = 0
   wireframeGeometry?: BufferGeometry
 
-  /**
+  /**g
    * @param {Object} data - attribute object
    * @param {Float32Array} data.position - positions
    * @param {Float32Array} data.color - colors
@@ -176,6 +177,8 @@ class Buffer {
         clipCenter: { value: this.parameters.clipCenter }
       },
       {
+        u_mouse: { value: new Vector2(0.7 * window.innerWidth, window.innerHeight).multiplyScalar(window.devicePixelRatio) },
+        u_resolution : { value: new Vector2(window.innerWidth, window.innerHeight).multiplyScalar(window.devicePixelRatio)},
         emissive: { value: new Color(0x000000) },
         roughness: { value: this.parameters.roughness },
         metalness: { value: this.parameters.metalness },
