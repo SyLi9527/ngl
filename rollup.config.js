@@ -104,9 +104,9 @@ const bundleConfig = {
     format: 'umd',
     name: 'NGL',
     sourcemap: true,
-    globals: {}
+    globals: {'postprocessing': 'postprocessing'}
   },
-  external: []
+  external: ['postprocessing']
 }
 
 export default [
