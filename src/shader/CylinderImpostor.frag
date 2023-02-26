@@ -54,10 +54,28 @@ varying vec4 w;
     varying vec3 vColor1;
     varying vec3 vColor2;
     #include common
+    #include packing
+    #include dithering_pars_fragment
+    #include color_pars_fragment
+    #include uv_pars_fragment
+    #include uv2_pars_fragment
+    #include map_pars_fragment
+    #include alphamap_pars_fragment
+    // #include alphatest_pars_fragment
+    #include aomap_pars_fragment
+    // #include lightmap_pars_fragment
+    #include emissivemap_pars_fragment
+    #include gradientmap_pars_fragment
     #include fog_pars_fragment
     #include bsdfs
     #include lights_pars_begin
-    #include lights_physical_pars_fragment
+    // #include normal_pars_fragment
+    #include lights_toon_pars_fragment
+    #include shadowmap_pars_fragment
+    #include bumpmap_pars_fragment
+    #include normalmap_pars_fragment
+    #include logdepthbuf_pars_fragment
+    // #include clipping_planes_pars_fragment
 #endif
 
 bool interior = false;
@@ -316,20 +334,29 @@ void main(){
         ReflectedLight reflectedLight = ReflectedLight( vec3( 0.0 ), vec3( 0.0 ), vec3( 0.0 ), vec3( 0.0 ) );
         vec3 totalEmissiveLight = emissive;
 
+        #include logdepthbuf_fragment
+        #include map_fragment
         #include color_fragment
+        #include alphamap_fragment
+        #include alphatest_fragment
         #include roughnessmap_fragment
         #include metalnessmap_fragment
+        #include normal_fragment_begin
+        #include normal_fragment_maps
+        #include emissivemap_fragment
 
         // @fredludlow: Previous comment from @arose says don't use normal_fragment_begin
         // though not clear why, but sticking with it. The r118 version of this chunk also
         // defines geometryNormal, so adding that here
         // #include normal_fragment_begin
-        vec3 normal = normalize( vNormal );
-        vec3 geometryNormal = normal;
+        // vec3 normal = normalize( vNormal );
+        // vec3 geometryNormal = normal;
 
-        #include lights_physical_fragment
+        #include lights_toon_fragment
         #include lights_fragment_begin
+        #include lights_fragment_maps
         #include lights_fragment_end
+        #include aomap_fragment
 
         vec3 outgoingLight = reflectedLight.directDiffuse + reflectedLight.indirectDiffuse + reflectedLight.directSpecular + reflectedLight.indirectSpecular + totalEmissiveLight;
 
@@ -343,6 +370,10 @@ void main(){
             #endif
             outgoingLight.xyz *= 1.0 - interiorDarkening;
         }
+
+        // float edge_factor = smoothstep(0.2, 0.1, dot(vNormal, normalize(vViewPosition)));
+
+        // outgoingLight = mix(outgoingLight, vec3(0.0, 0.0, 0.0), edge_factor);
 
         gl_FragColor = vec4( outgoingLight, diffuseColor.a );
 

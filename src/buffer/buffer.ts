@@ -13,7 +13,12 @@ import {
   UniformsUtils, UniformsLib, Uniform,
   Group, LineSegments, Points, Mesh, Object3D,
   ShaderMaterial,
-  Vector2
+  Vector2,
+  Clock,
+  //MeshLambertMaterial,
+  //LineBasicMaterial,
+  //PointsMaterial,
+  MeshToonMaterial,
 } from 'three'
 
 import { Log } from '../globals'
@@ -48,7 +53,7 @@ function setObjectMatrix (object: Object3D, matrix: Matrix4) {
 }
 
 export type BufferTypes = 'picking'|'background'
-export type BufferMaterials = 'material'|'wireframeMaterial'|'pickingMaterial'
+export type BufferMaterials = 'material'| 'borderMaterial' |'wireframeMaterial'|'pickingMaterial'
 
 export interface _BufferAttribute {
   type: 'f'|'v2'|'v3'|'c'
@@ -84,6 +89,7 @@ export type BufferParameters = Omit<typeof BufferDefaultParameters, 'diffuse'|'i
 
 export const BufferParameterTypes = {
   opaqueBack: { updateShader: true },
+  outline: { updateShader: true, property: true },
   side: { updateShader: true, property: true },
   opacity: { uniform: true },
   depthWrite: { property: true },
@@ -131,6 +137,7 @@ class Buffer {
   indexVersion = 0
   wireframeIndexVersion = -1
   group = new Group()
+  borderGroup = new Group()
   wireframeGroup = new Group()
   pickingGroup = new Group()
 
@@ -147,6 +154,7 @@ class Buffer {
   picking?: Picker
 
   material: ShaderMaterial
+  borderMaterial: ShaderMaterial
   wireframeMaterial: ShaderMaterial
   pickingMaterial: ShaderMaterial
 
@@ -177,6 +185,7 @@ class Buffer {
         clipCenter: { value: this.parameters.clipCenter }
       },
       {
+        u_time: {value: new Clock().getDelta() },
         u_mouse: { value: new Vector2(0.7 * window.innerWidth, window.innerHeight).multiplyScalar(window.devicePixelRatio) },
         u_resolution : { value: new Vector2(window.innerWidth, window.innerHeight).multiplyScalar(window.devicePixelRatio)},
         emissive: { value: new Color(0x000000) },
@@ -248,6 +257,7 @@ class Buffer {
 
   setMatrix (m: Matrix4) {
     setObjectMatrix(this.group, m)
+    setObjectMatrix(this.borderGroup, m)
     setObjectMatrix(this.wireframeGroup, m)
     setObjectMatrix(this.pickingGroup, m)
   }
@@ -279,6 +289,21 @@ class Buffer {
     m.extensions.derivatives = true
     m.extensions.fragDepth = this.isImpostor
 
+    const bm = new ShaderMaterial({
+      uniforms: this.uniforms,
+      vertexShader: '',
+      fragmentShader: '',
+      depthTest: true,
+      transparent: this.transparent,
+      depthWrite: this.parameters.depthWrite,
+      lights: true,
+      fog: true,
+      side: side
+    })
+    bm.vertexColors = true
+    bm.extensions.derivatives = true
+    bm.extensions.fragDepth = this.isImpostor
+
     const wm = new ShaderMaterial({
       uniforms: this.uniforms,
       vertexShader: '',
@@ -308,10 +333,12 @@ class Buffer {
     pm.extensions.fragDepth = this.isImpostor
 
     ;(m as any).clipNear = this.parameters.clipNear
+    ;(bm as any).clipNear = this.parameters.clipNear
     ;(wm as any).clipNear = this.parameters.clipNear
     ;(pm as any).clipNear = this.parameters.clipNear
 
     this.material = m
+    this.borderMaterial = bm
     this.wireframeMaterial = wm
     this.pickingMaterial = pm
 
@@ -474,11 +501,22 @@ class Buffer {
   }
 
   _getMesh (materialName: BufferMaterials) {
+    
     if (!this.material) this.makeMaterial()
 
     const g = this.geometry
     const m = this[ materialName ]
-
+    //this.setProperties({ side: 'front'})
+    m['side'] = FrontSide
+    console.log(m.side === FrontSide)
+    m.onBeforeCompile = (shader) => {
+      //shader.fragmentShader = shader.fragmentShader.replace(`gl_FragColor = vec4( outgoingLight, diffuseColor.a );`, `gl_FragColor = vec4( 0.0, 0.0, 0.0, diffuseColor.a );`);
+      console.log(shader.fragmentShader.toString())
+      m.userData.shader = shader;
+    }
+    m.customProgramCacheKey = function() {
+      return "2.0";
+    }
     let mesh
 
     if (this.isLine) {
@@ -486,6 +524,9 @@ class Buffer {
     } else if (this.isPoint) {
       mesh = new Points(g, m)
     } else {
+      // let mesh_only = new Mesh(g, m)
+      // let gg = new EdgesGeometry(mesh_only.geometry, 25);
+      // mesh = new LineSegments(gg, m);
       mesh = new Mesh(g, m)
     }
 
@@ -495,8 +536,89 @@ class Buffer {
     return mesh
   }
 
-  getMesh () {
-    return this._getMesh('material')
+  _getBorder (materialName: BufferMaterials) {
+    
+    
+    if (!this.material) this.makeMaterial()
+
+    const g = this.geometry
+    var bm: ShaderMaterial | MeshToonMaterial;
+    if (this.isLine) {
+      bm = this[ materialName ]
+    } else if (this.isPoint) {
+      bm = this[ materialName ]
+    } else if (this.isImpostor) {
+      bm = this [ materialName ]
+      this.setProperties({ side: 'back'})
+      //bm['side'] = BackSide
+      
+      bm.onBeforeCompile = (shader) => {
+        console.log(bm.side === BackSide)
+        shader.fragmentShader = shader.fragmentShader.replace(`gl_FragColor = vec4( outgoingLight, diffuseColor.a );`, `gl_FragColor = vec4( 0.0, 0.0, 0.0, diffuseColor.a );`);
+        //console.log(shader.fragmentShader.toString())
+        bm.userData.shader = shader;
+      }
+      bm.customProgramCacheKey = function() {
+        return "1.0";
+      }
+    } else if (this.isText) {
+      bm = this[ materialName ]
+    } else if (this.isSurface) {
+      bm = this[ materialName ]
+    } else {
+      //bm = this [ materialName ]
+
+      bm = new MeshToonMaterial({
+        color: 'black',
+        side: BackSide
+      })
+
+      bm.onBeforeCompile = (shader) => {
+        const token = '#include <begin_vertex>'
+        var customTransform = `
+            vec3 transformed = position + objectNormal * 11.0;
+        ` 
+        shader.vertexShader = 
+            shader.vertexShader.replace(token, customTransform)
+
+      }
+
+      
+    }
+    
+    let mesh
+
+    if (this.isLine) {
+      mesh = new LineSegments(g, bm)
+    } else if (this.isPoint) {
+      mesh = new Points(g, bm)
+    } else if (this.isImpostor) {
+      mesh = new Mesh(g, bm)
+    } else {
+      // let mesh_only = new Mesh(g, m)
+      // let gg = new EdgesGeometry(mesh_only.geometry, 25);
+      // mesh = new LineSegments(gg, m);
+      mesh = new Mesh(g, bm)
+      
+    }
+
+    // if (this.isImpostor) {
+    //  mesh.scale.multiplyScalar(1.001)
+    // }
+
+    mesh.frustumCulled = false
+    mesh.renderOrder = this.getRenderOrder()
+
+    return mesh
+  }
+
+  getMesh (type?: number) {
+    if (type === 0) {
+      return this._getBorder('borderMaterial')
+    } else {
+      return this._getMesh('material')
+    }
+    
   }
 
   getWireframeMesh () {
@@ -615,12 +737,17 @@ class Buffer {
 
   updateShader () {
     const m = this.material
+    const bm = this.borderMaterial
     const wm = this.wireframeMaterial
     const pm = this.pickingMaterial
 
     m.vertexShader = this.getVertexShader()
     m.fragmentShader = this.getFragmentShader()
     m.needsUpdate = true
+
+    bm.vertexShader = this.getVertexShader()
+    bm.fragmentShader = this.getFragmentShader()
+    bm.needsUpdate = true
 
     wm.vertexShader = this.getShader('Line.vert')
     wm.fragmentShader = this.getShader('Line.frag')
@@ -801,6 +928,7 @@ class Buffer {
     if (!data) return
 
     const m = this.material
+    const bm = this.borderMaterial
     const wm = this.wireframeMaterial
     const pm = this.pickingMaterial
 
@@ -816,11 +944,13 @@ class Buffer {
       }
 
       (m[ name ] as any) = value;
+      (bm[ name ] as any) = value;
       (wm[ name ] as any) = value;
       (pm[ name ] as any) = value
     }
 
     m.needsUpdate = true
+    bm.needsUpdate = true
     wm.needsUpdate = true
     pm.needsUpdate = true
   }
@@ -835,12 +965,14 @@ class Buffer {
 
     if (this.parameters.wireframe) {
       this.group.visible = false
+      this.borderGroup.visible = false
       this.wireframeGroup.visible = value
       if (this.pickable) {
         this.pickingGroup.visible = false
       }
     } else {
       this.group.visible = value
+      this.borderGroup.visible = value
       this.wireframeGroup.visible = false
       if (this.pickable) {
         this.pickingGroup.visible = value
@@ -867,7 +999,7 @@ class Buffer {
   toJSON () {
     var result: any = {};
     for (var x in this) {
-      if (x !== "group" && x !== "wireframeGroup" && x != "pickingGroup"
+      if (x !== "group" && x !== "borderGroup" && x !== "wireframeGroup" && x != "pickingGroup"
          && x !== "picking") {
         result[x] = this[x];
       }

@@ -38,6 +38,7 @@ class DoubleSidedBuffer {
   picking?: Picker
 
   group = new Group()
+  borderGroup = new Group()
   wireframeGroup = new Group()
   pickingGroup = new Group()
 
@@ -47,6 +48,7 @@ class DoubleSidedBuffer {
   buffer: Buffer
   frontBuffer: Buffer
   backBuffer: Buffer
+ 
 
   /**
    * Create a double sided buffer
@@ -60,6 +62,7 @@ class DoubleSidedBuffer {
     this.picking = buffer.picking
 
     this.group = new Group()
+    this.borderGroup = new Group()
     this.wireframeGroup = new Group()
     this.pickingGroup = new Group()
 
@@ -116,7 +119,7 @@ class DoubleSidedBuffer {
 
   getMesh (picking: boolean) {
     let front, back
-
+    console.log("holy shit")
     if (picking) {
       back = this.backBuffer.getPickingMesh()
       front = this.frontBuffer.getPickingMesh()
@@ -185,12 +188,14 @@ class DoubleSidedBuffer {
 
     if (this.parameters.wireframe) {
       this.group.visible = false
+      this.borderGroup.visible = false
       this.wireframeGroup.visible = value
       if (this.pickable) {
         this.pickingGroup.visible = false
       }
     } else {
       this.group.visible = value
+      this.borderGroup.visible = value
       this.wireframeGroup.visible = false
       if (this.pickable) {
         this.pickingGroup.visible = value

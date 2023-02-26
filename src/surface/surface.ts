@@ -208,6 +208,12 @@ class Surface {
       uniformArray3(n, tc.r, tc.g, tc.b, array)
     }
 
+    // for (let i = 0; i < n; i ++) {
+    //   var k = 3 * i;
+    //   array[k + 1] = 0.1
+    //   array[k + 1] = 1.0
+    //   array[k + 2] = 0.1
+    // }
     return array
   }
 

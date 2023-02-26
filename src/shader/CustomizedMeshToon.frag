@@ -1,6 +1,7 @@
 #define TOON
 
 // uniform sampler2D map;
+uniform float u_time;
 uniform vec2 u_mouse;
 uniform vec2 u_resolution;
 uniform vec3 diffuse;
@@ -111,17 +112,6 @@ void main(){
         #include aomap_fragment
         vec3 outgoingLight = reflectedLight.directDiffuse + reflectedLight.indirectDiffuse + totalEmissiveLight;
         // float scale = 1.0 / max(max(outgoingLight.x, outgoingLight.y), outgoingLight.z);
-        
-
-        // float vx = vViewPosition.x,
-        //     vy = vViewPosition.y,
-        //     vz = vViewPosition.z;
-        // vec3 light_point;
-        // if (vx < vy) {
-        //     light_point = vx < vz ? vec3(0, -vz, vy) : vec3(-vy, vx, 0);
-        // } else {
-        //     light_point = vy < vz ? vec3(vz, 0, -vx) : vec3(-vy, vx, 0);
-        // }
 
         // Use the mouse position to define the light direction
         float min_resolution = min(u_resolution.x, u_resolution.y);
@@ -143,7 +133,7 @@ void main(){
         float surface_color_len = length(surface_color);
         float sum_len = outgoingLight_len + surface_color_len;
 
-        outgoingLight = outgoingLight * 0.9 + surface_color * 0.15;
+        outgoingLight = outgoingLight * 0.85 + surface_color * 0.15;
 
 
 

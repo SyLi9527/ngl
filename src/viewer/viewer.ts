@@ -4,6 +4,8 @@
  * @private
  */
 
+
+
 import { Signal } from 'signals'
 import {
   PerspectiveCamera, OrthographicCamera, StereoCamera,
@@ -40,6 +42,12 @@ import {
 import { testTextureSupport } from './gl-utils'
 
 import Buffer from '../buffer/buffer'
+
+//import * as THREE from "three";
+import { GLTFExporter } from "three/examples/jsm/exporters/GLTFExporter";
+import { EffectComposer, EffectPass, OutlineEffect, RenderPass } from 'postprocessing'
+
+
 
 const pixelBufferFloat = new Float32Array(4 * 25)
 const pixelBufferUint = new Uint8Array(4 * 25)
@@ -424,6 +432,11 @@ export default class Viewer {
         alpha: true,
         antialias: true
       })
+      const composer = new EffectComposer(this.renderer);
+      composer.addPass(new RenderPass(this.scene, this.camera))
+      composer.addPass(new EffectPass(this.camera, new OutlineEffect(this.scene, this.camera, {
+
+      })))
     } catch (e) {
       this.wrapper.innerHTML = WebglErrorMessage
       return false
@@ -620,17 +633,24 @@ export default class Viewer {
     // Log.time( "Viewer.add" );
 
     if (instanceList) {
+      console.log(instanceList)
+      console.log("1")
       instanceList.forEach(instance => this.addBuffer(buffer, instance))
     } else {
+      console.log("2")
       this.addBuffer(buffer)
     }
 
+
     buffer.group.name = 'meshGroup'
+    buffer.borderGroup.name = 'borderGroup'
     buffer.wireframeGroup.name = 'wireframeGroup'
     if (buffer.parameters.background) {
+      this.backgroundGroup.add(buffer.borderGroup)
       this.backgroundGroup.add(buffer.group)
       this.backgroundGroup.add(buffer.wireframeGroup)
     } else {
+      this.modelGroup.add(buffer.borderGroup)
       this.modelGroup.add(buffer.group)
       this.modelGroup.add(buffer.wireframeGroup)
     }
@@ -647,6 +667,8 @@ export default class Viewer {
   addBuffer (buffer: Buffer, instance?: BufferInstance) {
     // Log.time( "Viewer.addBuffer" );
 
+
+
     function setUserData (object: Object3D) {
       if (object instanceof Group) {
         object.children.forEach(setUserData)
@@ -657,10 +679,17 @@ export default class Viewer {
       }
     }
 
+    // console.log("test");
+    const border = buffer.getMesh()
     const mesh = buffer.getMesh()
+    
     if (instance) {
       mesh.applyMatrix4(instance.matrix)
+      border.applyMatrix4(instance.matrix)
     }
+    setUserData(border)
+    buffer.borderGroup.add(border)
+
     setUserData(mesh)
     buffer.group.add(mesh)
 
@@ -699,6 +728,7 @@ export default class Viewer {
 
   remove (buffer: Buffer) {
     this.translationGroup.children.forEach(function (group) {
+      group.remove(buffer.borderGroup)
       group.remove(buffer.group)
       group.remove(buffer.wireframeGroup)
     })
@@ -1011,6 +1041,7 @@ export default class Viewer {
     }
 
     this.frameRequest = window.requestAnimationFrame(this.animate)
+    
   }
 
   pick (x: number, y: number) {
@@ -1393,11 +1424,38 @@ export default class Viewer {
     // Log.log(this.info.memory, this.info.render)
   }
 
+  //export
+
   clear () {
     Log.log('scene cleared')
     this.scene.remove(this.rotationGroup)
     this._initScene()
     this.renderer.clear()
+  }
+
+  downloadGLTF() {
+    let exporter = new GLTFExporter();
+    exporter.parse(this.scene, (gltf) => {
+      console.log("Parsed scene!");
+      
+        // Convert the GLTF data to a string
+        var gltfString = JSON.stringify( gltf );
+
+        // Create a Blob object from the GLTF data
+        var gltfBlob = new Blob( [ gltfString ], { type: 'application/json' } );
+
+        // Create a URL for the Blob object
+        var gltfUrl = URL.createObjectURL( gltfBlob );
+
+        // Create a download link and click it to download the GLTF file
+        var link = document.createElement( 'a' );
+        link.style.display = 'none';
+        document.body.appendChild( link );
+        link.href = gltfUrl;
+        link.download = 'my_model.gltf';
+        link.click();
+  }, {});
+    
   }
 
   dispose () {

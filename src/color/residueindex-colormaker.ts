@@ -32,6 +32,19 @@ class ResidueindexColormaker extends Colormaker {
 
   @manageColor
   atomColor (a: AtomProxy) {
+    // if (a.isHelix()) {
+    //   return 0;
+    // }
+
+    // if(a.isSheet()) {
+    //   // 
+    //   return 16776960;
+    // }
+    // if (a.isTurn()) {
+    //   // r
+    //   return 65535;
+    // }
+    
     return this.scalePerChain[ a.chainIndex ](a.residueIndex)
   }
 }

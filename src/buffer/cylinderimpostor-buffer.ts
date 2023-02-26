@@ -72,6 +72,7 @@ class CylinderImpostorBuffer extends MappedAlignedBoxBuffer {
 
     this.setAttributes(data)
     this.makeMapping()
+
   }
 
   getDefines (type?: BufferTypes) {

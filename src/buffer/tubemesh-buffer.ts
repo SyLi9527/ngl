@@ -205,29 +205,25 @@ class TubeMeshBuffer extends MeshBuffer {
         const s = l + j * 3
 
         if (position) {
-          var cx, cx1, cx2;
-          if (type && type[i] === 'turn') {
-            cx = -radius * cxArr[ j ] / aspectRatio // TODO: Hack: Negating it so it faces outside.
-            cx1 = -radius * cx1Arr[ j ] / aspectRatio
-            cx2 = -radius * cx2Arr[ j ] / aspectRatio
-          } 
-          else {
-            cx = -radius * cxArr[ j ] // TODO: Hack: Negating it so it faces outside.
-            cx1 = -radius * cx1Arr[ j ]
-            cx2 = -radius * cx2Arr[ j ]
-          }
-          
+  
+          var cx = -radius * cxArr[ j ] // TODO: Hack: Negating it so it faces outside.
+          var cx1 = -radius * cx1Arr[ j ]
+          var cx2 = -radius * cx2Arr[ j ]
           var cy = radius * cyArr[ j ] 
           var cy1 = radius * cy1Arr[ j ]
           var cy2 = radius * cy2Arr[ j ]
 
-          // if  (type && type[i + 1] && type[i + 1] === 'turn') {
-          //   cy *= 5;
-          //   cy1 *= 5;
-          //   cy2 *- 5;
-          // }
+          if (type && type[i] === 'turn') {
+            cx /= aspectRatio * 1// TODO: Hack: Negating it so it faces outside.
+            cx1 /= aspectRatio * 1
+            cx2 /= aspectRatio * 1
+            // cy *= 2;
+            // cy1 *= 2;
+            // cy2 *= 2;
+          } 
+          
 
-          if  (type && type[i + 1] && type[i] !== 'turn' && type[i + 1] === 'turn') {
+          if  (type && type[i] !== 'turn' && type[i + 1] === 'turn') {
             cx *= 2;
             cx1 *= 1;
             cx2 *= 1;
@@ -244,9 +240,9 @@ class TubeMeshBuffer extends MeshBuffer {
           meshPosition[ s + 2 ] = posZ + cx * normZ + cy * biZ
 
           if  (type && type[i + 1] && type[i] !== 'turn' && type[i + 1] === 'turn') {
-            meshPosition[ s ] = (meshPosition[ s ] - nextPosX) * 1.5 + nextPosX
-            meshPosition[ s + 1 ] = (meshPosition[ s + 1 ] - nextPosY) * 1.5 + nextPosY
-            meshPosition[ s + 2 ] = (meshPosition[ s + 2 ] - nextPosZ) * 1.5 + nextPosZ
+            meshPosition[ s ] = (meshPosition[ s ] - nextPosX) * 1.8 + nextPosX
+            meshPosition[ s + 1 ] = (meshPosition[ s + 1 ] - nextPosY) * 1.8 + nextPosY
+            meshPosition[ s + 2 ] = (meshPosition[ s + 2 ] - nextPosZ) * 1.8 + nextPosZ
             // console.log(meshPosition[s]);
             // console.log(meshPosition[ s + 1 ]);
             // console.log(meshPosition[ s + 2 ]);
@@ -275,15 +271,14 @@ class TubeMeshBuffer extends MeshBuffer {
           meshColor[ s + 1 ] = color[ k + 1 ]
           meshColor[ s + 2 ] = color[ k + 2 ]
         }
-        // if  (type && type[i + 1] && type[i] !== 'turn' && type[i + 1] === 'turn' && j < radialSegments / 2) {
-        //   meshColor[ s ] = 0
-        //   meshColor[ s + 1 ] = 0
-        //   meshColor[ s + 2 ] = 0
-        // }
-        // if  (type && type[i + 1] && type[i] !== 'turn' && type[i + 1] === 'turn' && j > radialSegments / 2) {
-        //   meshColor[ s ] = 255
-        //   meshColor[ s + 1 ] = 0
-        //   meshColor[ s + 2 ] = 0
+        // if  (type && type[i] !== 'turn' && (j < 0.05 * radialSegments )) {
+        //   meshColor[ s ] = 0.1
+        //   meshColor[ s + 1 ] = 0.1
+        //   meshColor[ s + 2 ] = 0.1
+        // } else if  (type && type[i] !== 'turn' && j < 0.55 * radialSegments && j > 0.45 * radialSegments ) {
+        //   meshColor[ s ] = 0.1
+        //   meshColor[ s + 1 ] = 0.1
+        //   meshColor[ s + 2 ] = 0.1
         // }
 
         if (primitiveId) {

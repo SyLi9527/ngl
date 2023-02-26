@@ -25,12 +25,28 @@ varying vec3 vPointViewPosition;
     varying vec3 vPickingColor;
 #else
     #include common
+    #include packing
+    #include dithering_pars_fragment
     #include color_pars_fragment
+    #include uv_pars_fragment
+    #include uv2_pars_fragment
+    #include map_pars_fragment
+    #include alphamap_pars_fragment
+    // #include alphatest_pars_fragment
+    #include aomap_pars_fragment
+    // #include lightmap_pars_fragment
+    #include emissivemap_pars_fragment
+    #include gradientmap_pars_fragment
     #include fog_pars_fragment
     #include bsdfs
     #include lights_pars_begin
-    // #include lights_phong_pars_fragment
-    #include lights_physical_pars_fragment
+    // #include normal_pars_fragment
+    #include lights_toon_pars_fragment
+    #include shadowmap_pars_fragment
+    #include bumpmap_pars_fragment
+    #include normalmap_pars_fragment
+    #include logdepthbuf_pars_fragment
+    // #include clipping_planes_pars_fragment
 #endif
 
 bool flag2 = false;
@@ -151,43 +167,51 @@ void main(void){
         gl_FragColor = vec4( vPickingColor, objectId );
 
     #else
+        gl_FragColor = vec4( vColor, opacity );
+        // vec3 vNormal = cameraNormal;
+        // vec3 vViewPosition = -cameraPos;
 
-        vec3 vNormal = cameraNormal;
-        vec3 vViewPosition = -cameraPos;
+        // vec4 diffuseColor = vec4( diffuse, opacity );
+        // ReflectedLight reflectedLight = ReflectedLight( vec3( 0.0 ), vec3( 0.0 ), vec3( 0.0 ), vec3( 0.0 ) );
+        // vec3 totalEmissiveLight = emissive;
 
-        vec4 diffuseColor = vec4( diffuse, opacity );
-        ReflectedLight reflectedLight = ReflectedLight( vec3( 0.0 ), vec3( 0.0 ), vec3( 0.0 ), vec3( 0.0 ) );
-        vec3 totalEmissiveLight = emissive;
+        // #include logdepthbuf_fragment
+        // #include map_fragment
+        // #include color_fragment
+        // #include alphamap_fragment
+        // #include alphatest_fragment
+        // #include roughnessmap_fragment
+        // #include metalnessmap_fragment
+        // #include normal_fragment_begin
+        // #include normal_fragment_maps
+        // #include emissivemap_fragment
+        // // accumulation
+        // #include lights_toon_fragment
+        // #include lights_fragment_begin
+        // #include lights_fragment_maps
+        // #include lights_fragment_end
+        // // modulation
+        // #include aomap_fragment
 
-        #include color_fragment
-        #include roughnessmap_fragment
-        #include metalnessmap_fragment
-        #include normal_fragment_begin
+        // vec3 outgoingLight = reflectedLight.directDiffuse + reflectedLight.indirectDiffuse + reflectedLight.directSpecular + reflectedLight.indirectSpecular + totalEmissiveLight;
 
-        // #include lights_phong_fragment
-        #include lights_physical_fragment
-        #include lights_fragment_begin
-        #include lights_fragment_end
+        // if( interior ){
+        //     #ifdef USE_INTERIOR_COLOR
+        //         outgoingLight.xyz = interiorColor;
+        //     #else
+        //         #ifdef DIFFUSE_INTERIOR
+        //             outgoingLight.xyz = vColor;
+        //         #endif
+        //     #endif
+        //     outgoingLight.xyz *= 1.0 - interiorDarkening;
+        // }
 
-        vec3 outgoingLight = reflectedLight.directDiffuse + reflectedLight.indirectDiffuse + reflectedLight.directSpecular + reflectedLight.indirectSpecular + totalEmissiveLight;
+        // gl_FragColor = vec4( outgoingLight, diffuseColor.a );
 
-        if( interior ){
-            #ifdef USE_INTERIOR_COLOR
-                outgoingLight.xyz = interiorColor;
-            #else
-                #ifdef DIFFUSE_INTERIOR
-                    outgoingLight.xyz = vColor;
-                #endif
-            #endif
-            outgoingLight.xyz *= 1.0 - interiorDarkening;
-        }
-
-        gl_FragColor = vec4( outgoingLight, diffuseColor.a );
-
-        #include premultiplied_alpha_fragment
-        #include tonemapping_fragment
-        #include encodings_fragment
-        #include fog_fragment
+        // #include premultiplied_alpha_fragment
+        // #include tonemapping_fragment
+        // #include encodings_fragment
+        // #include fog_fragment
 
     #endif
 

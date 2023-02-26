@@ -735,6 +735,10 @@ class Stage {
     return clipNear * 2
   }
 
+  downloadGLTF () {
+    this.viewer.downloadGLTF();
+  }
+
 
   /**
    * Set the focus, a value of 0 sets clipping planes to show full scene,
