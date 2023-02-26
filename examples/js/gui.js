@@ -104,7 +104,7 @@ NGL.Preferences = function (id, defaultParams) {
     fogFar: 100,
     cameraFov: 40,
     cameraType: 'perspective',
-    lightColor: 0xdddddd,
+    lightColor: 0xffffff,
     lightIntensity: 1.0,
     ambientColor: 0xdddddd,
     ambientIntensity: 0.2,
@@ -512,14 +512,17 @@ NGL.MenubarFileWidget = function (stage) {
   }
 
   function onScreenshotOptionClick () {
-    stage.makeImage({
-      factor: 1,
-      antialias: true,
-      trim: false,
-      transparent: false
-    }).then(function (blob) {
-      NGL.download(blob, 'screenshot.png')
-    })
+    stage.downloadGLTF();
+
+  //   stage.makeImage({
+  //     factor: 1,
+  //     antialias: true,
+  //     trim: false,
+  //     transparent: false
+  //   }).then(function (blob) {
+  //     //NGL.clear()
+  //     NGL.download(blob, 'screenshot.png')
+  //   })
   }
 
   function onPdbInputKeyDown (e) {
